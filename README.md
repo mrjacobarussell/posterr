@@ -1,36 +1,88 @@
 # Posterr
-## Media display software for Plex, Sonarr, Radarr, and Readarr. (Just like the display screens in movie theatre foyers)
+## Media display software for Plex, Emby, Sonarr, Radarr, and Readarr. (Just like the display screens in movie theatre foyers)
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/petersem/posterr) 
 ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/petersem/posterr/latest?logo=docker) 
 ![GitHub Stars](https://img.shields.io/github/stars/petersem/posterr?style=flat)
-![Version](https://img.shields.io/github/package-json/v/petersem/posterr?logoColor=blue)
-![GitHub last commit](https://img.shields.io/github/last-commit/petersem/posterr)
+![Version](https://img.shields.io/github/package-json/v/mrjacobarussell/posterr?logoColor=blue)
+![GitHub last commit](https://img.shields.io/github/last-commit/mrjacobarussell/posterr)
 ![Platforms](https://img.shields.io/badge/platform-docker-blue)
 [![User Guide](https://img.shields.io/badge/user_guide-wiki-informational?logo=github)](https://github.com/petersem/posterr/wiki/Posterr-Configuration)
 
 ![Slides](https://github.com/petersem/posterr/blob/master/doco/posterr.jpg?raw=true)
-![Awtrix](https://github.com/petersem/posterr/blob/master/doco/awtrix.gif?raw=true)
 
-- Check [Here](https://github.com/petersem/posterr/wiki/Latest-changes) for the latest updates
-- Visit the [wiki](https://github.com/petersem/posterr/wiki/Known-Issues) for more information on known issues.
+> **This is a fork of [petersem/posterr](https://github.com/petersem/posterr) with the following additions. See upstream for original docs, wiki, and Docker images.**
+
+---
+## Fork Additions (v1.22.x)
+
+### Emby Support
+Full Emby media server integration alongside Plex. Configure Emby in Settings → General with your server IP, port, and API token. Supports Now Screening (movies, TV episodes, music) and On-Demand libraries.
+
+### Simultaneous Plex + Emby Now Screening
+When both servers are configured, Now Screening polls both simultaneously and rotates through all active sessions from both — not either/or.
+
+### User Filter Mode (Include / Exclude)
+The existing user filter field now has an **Include / Exclude** toggle:
+- **Include** — only show sessions from listed users (whitelist, original behavior)
+- **Exclude** — show all sessions *except* listed users (blacklist)
+
+### Server Resource Stats Bar
+A compact stats bar at the bottom of every Now Screening and Playing card showing:
+- Total movies and TV shows (pulled from your configured media servers)
+- Server CPU usage %
+- RAM used / total
+- Disk free / total
+
+Stats refresh every 30 seconds. Mount your array path into the container for accurate disk stats (see Docker CLI example below).
+
+---
+
+### Building this fork
+
+```bash
+git clone https://github.com/mrjacobarussell/posterr.git
+cd posterr
+git checkout develop
+docker build -t posterr-fork:local .
+```
+
+```bash
+docker run -d --name posterr \
+  -p 9876:3000 \
+  -v ~/docker/posterr/config:/usr/src/app/config \
+  -v ~/docker/posterr/saved:/usr/src/app/saved \
+  -v /mnt/user:/mnt/user:ro \
+  -e TZ=America/Chicago \
+  --restart=unless-stopped \
+  posterr-fork:local
+```
+
+> The `/mnt/user:/mnt/user:ro` mount is optional — used for accurate disk space stats on Unraid. Replace with your array path or omit to fall back to root filesystem stats.
+
+---
+
+- Check [Here](https://github.com/petersem/posterr/wiki/Latest-changes) for upstream updates
+- Visit the [wiki](https://github.com/petersem/posterr/wiki/Known-Issues) for known issues.
 - Visit the [Discord Group](https://discord.gg/TcnEkMEf9J) for discussions and limited support.
 - **The default password is:** raidisnotabackup
 
  > **IMPORTANT NOTE ON UPGRADES**
- > - There are rare times that you will need to update settings. Check [here](https://github.com/petersem/posterr/wiki/Latest-changes) for detailed notes on each updated.
+ > - There are rare times that you will need to update settings. Check [here](https://github.com/petersem/posterr/wiki/Latest-changes) for detailed notes on each update.
  
 ---
 ## Features
- - Displays movies, shows, music poster for what's currently playing.
- - Displays random (on-demand) titles from multiple Plex libraries.
+ - Displays movies, shows, music poster for what's currently playing on **Plex or Emby (or both simultaneously)**.
+ - Displays random (on-demand) titles from multiple Plex or Emby libraries.
  - Displays custom pictures, background art, and themes
  - Shows coming soon titles from Sonarr (or Season premieres).
  - Shows coming soon titles from Radarr.
  - Shows coming soon books from Readarr.
  - Optionally plays TV and Movies themes, if available
  - A playing progress bar (green for direct play and red for transcoding)
- - Various metadata displayed, such as run time, content rating, studio, etc. 
+ - Various metadata displayed, such as run time, content rating, studio, etc.
+ - **Server resource stats bar on Now Screening cards (CPU, RAM, disk, library counts)**
+ - **Include or exclude specific users from Now Screening display**
  - Move the mouse cursor to the bottom footer of the page to hide it
  - Background artwork option for improved landscape view (when available)
  - Automatically scales for most display sizes and orientation.
@@ -41,7 +93,7 @@
  - Rotate display -90° (for running on display devices, like Firesticks, which do not support portait rotation)
  - Post API (at '/api/sleep') to toggle sleep mode. (Pass in header values `'psw: your Posterr password'` and `'sleep: true|false'`)
  - Get API at the same endpoint will return the sleep status without any parsed parameters.
- - Supports `CEC` control of monitor inconjunction with the Posterr `Sleep Timer`. 
+ - Supports `CEC` control of monitor in conjunction with the Posterr `Sleep Timer`.
 ---
 ## Prerequisites
 ### Mandatory
