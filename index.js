@@ -485,35 +485,18 @@ async function loadNowScreening() {
   }
 
   let pollInterval = nsCheckSeconds;
-  // call now screening method
+  // call now screening method — poll ALL configured servers and merge
   try {
-    if (loadedSettings.mediaServer === 'emby' && isEmbyEnabled) {
-      let ms = new embs({
-        HTTPS: loadedSettings.embyHTTPS,
-        embyIP: loadedSettings.embyIP,
-        embyPort: loadedSettings.embyPort,
-        embyToken: loadedSettings.embyToken,
-      });
-      nsCards = await ms.GetNowScreening(
-        loadedSettings.playThemes,
-        loadedSettings.genericThemes,
-        loadedSettings.hasArt,
-        loadedSettings.filterRemote,
-        loadedSettings.filterLocal,
-        loadedSettings.filterDevices,
-        loadedSettings.filterUsers,
-        loadedSettings.hideUser,
-        excludeLibraries
-      );
-    } else {
-      // load MediaServer(s)
-      let ms = new pms({
+    let allNsCards = [];
+
+    if (isPlexEnabled) {
+      let plexMs = new pms({
         plexHTTPS: loadedSettings.plexHTTPS,
         plexIP: loadedSettings.plexIP,
         plexPort: loadedSettings.plexPort,
         plexToken: loadedSettings.plexToken,
       });
-      nsCards = await ms.GetNowScreening(
+      const plexCards = await plexMs.GetNowScreening(
         loadedSettings.playThemes,
         loadedSettings.genericThemes,
         loadedSettings.hasArt,
@@ -524,7 +507,31 @@ async function loadNowScreening() {
         loadedSettings.hideUser,
         excludeLibraries
       );
+      allNsCards = allNsCards.concat(plexCards);
     }
+
+    if (isEmbyEnabled) {
+      let embyMs = new embs({
+        HTTPS: loadedSettings.embyHTTPS,
+        embyIP: loadedSettings.embyIP,
+        embyPort: loadedSettings.embyPort,
+        embyToken: loadedSettings.embyToken,
+      });
+      const embyCards = await embyMs.GetNowScreening(
+        loadedSettings.playThemes,
+        loadedSettings.genericThemes,
+        loadedSettings.hasArt,
+        loadedSettings.filterRemote,
+        loadedSettings.filterLocal,
+        loadedSettings.filterDevices,
+        loadedSettings.filterUsers,
+        loadedSettings.hideUser,
+        excludeLibraries
+      );
+      allNsCards = allNsCards.concat(embyCards);
+    }
+
+    nsCards = allNsCards;
     // Send to Awtrix, if enabled
     if(isAwtrixEnabled){
       var awt = new awtrix();
@@ -671,11 +678,8 @@ async function loadNowScreening() {
       "✘✘ WARNING ✘✘ - Next Now Screening query will be delayed by 1 minute:",
       "(" + pollInterval / 1000 + " seconds)"
     );
-    if (loadedSettings.mediaServer === 'emby') {
-      isEmbyUnavailable = true;
-    } else {
-      isPlexUnavailable = true;
-    }
+    isPlexUnavailable = true;
+    isEmbyUnavailable = true;
   }
 
   // Concatenate cards for all objects load now showing and on-demand cards, else just on-demand (if present)

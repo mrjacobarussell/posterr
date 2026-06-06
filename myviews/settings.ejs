@@ -551,7 +551,7 @@
                 <div class="panel-body">
 
                   <div class="form-group">
-                    <label><strong>Media Server</strong></label><br>
+                    <label><strong>On-Demand Source</strong></label><br>
                     <div class="custom-control custom-control-inline custom-radio">
                       <input type="radio" class="custom-control-input" name="mediaServer" id="mediaServerPlex" value="plex"
                         <% if(typeof formData !== 'undefined' && errors){ %><%= formData.mediaServer === 'plex' || !formData.mediaServer ? 'checked' : '' %><% }else{ %><%= (!settings.mediaServer || settings.mediaServer === 'plex') ? 'checked' : '' %><% } %>>
@@ -562,7 +562,7 @@
                         <% if(typeof formData !== 'undefined' && errors){ %><%= formData.mediaServer === 'emby' ? 'checked' : '' %><% }else{ %><%= settings.mediaServer === 'emby' ? 'checked' : '' %><% } %>>
                       <label class="custom-control-label" for="mediaServerEmby">Emby</label>
                     </div>
-                    <small class="form-text text-muted">Choose which media server to use for Now Screening and On-Demand.</small>
+                    <small class="form-text text-muted">Selects the On-Demand library source. <strong>Now Screening automatically shows activity from both Plex and Emby</strong> if both are configured.</small>
                   </div>
 
                   <div id="plexSettings">
