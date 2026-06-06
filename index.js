@@ -8,6 +8,9 @@ const { check, validationResult } = require("express-validator");
 //const user = require('./routes/user.routes');
 const pms = require("./classes/mediaservers/plex");
 const embs = require("./classes/mediaservers/emby");
+const os = require("os");
+const axios = require("axios");
+const { execSync } = require("child_process");
 const vers = require("./classes/core/ver");
 const glb = require("./classes/core/globalPage");
 const core = require("./classes/core/cache");
@@ -103,6 +106,8 @@ let isTriviaUnavailable = false;
 let isLinksEnabled = false;
 let isLinksUnavailable = false;
 let hasReported = false;
+let serverStats = { cpu: 0, ramUsed: 0, ramTotal: 0, diskFree: 0, diskTotal: 0, movieCount: 0, tvCount: 0 };
+let statsClock;
 let cold_start_time = new Date();
 let customPicFolders = [];
 let serverID = "";
@@ -825,7 +830,7 @@ async function loadNowScreening() {
 
   // put everything into global class, ready to be passed to poster.ejs
   // render html for all cards
-  await globalPage.OrderAndRenderCards(BASEURL, loadedSettings.hasArt, loadedSettings.odHideTitle, loadedSettings.odHideFooter);
+  await globalPage.OrderAndRenderCards(BASEURL, loadedSettings.hasArt, loadedSettings.odHideTitle, loadedSettings.odHideFooter, serverStats);
   globalPage.slideDuration = loadedSettings.slideDuration * 1000;
   globalPage.playThemes = loadedSettings.playThemes;
   globalPage.playGenericThemes = loadedSettings.genericThemes;
@@ -1264,6 +1269,77 @@ async function wake(theater) {
  * @desc Starts everything - calls coming soon 'tv', on-demand and now screening functions. Then initialises timers
  * @returns nothing
  */
+function _fmtBytes(bytes) {
+  if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + ' TB';
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' GB';
+  return (bytes / 1e6).toFixed(0) + ' MB';
+}
+
+function _cpuPercent() {
+  return new Promise((resolve) => {
+    const s1 = os.cpus();
+    setTimeout(() => {
+      const s2 = os.cpus();
+      let idle = 0, total = 0;
+      s2.forEach((cpu, i) => {
+        for (const t in cpu.times) { total += cpu.times[t] - s1[i].times[t]; }
+        idle += cpu.times.idle - s1[i].times.idle;
+      });
+      resolve(total > 0 ? Math.round((1 - idle / total) * 100) : 0);
+    }, 500);
+  });
+}
+
+async function loadServerStats() {
+  clearInterval(statsClock);
+  try {
+    const cpu = await _cpuPercent();
+    const ramTotal = os.totalmem();
+    const ramUsed = ramTotal - os.freemem();
+
+    let diskTotal = 0, diskFree = 0;
+    try {
+      const dfOut = execSync('df -k /mnt/user 2>/dev/null || df -k /').toString().trim().split('\n');
+      const parts = dfOut[dfOut.length - 1].trim().split(/\s+/);
+      diskTotal = parseInt(parts[1]) * 1024;
+      diskFree  = parseInt(parts[3]) * 1024;
+    } catch(e) {}
+
+    let movieCount = 0, tvCount = 0;
+
+    if (isPlexEnabled) {
+      try {
+        const prefix = loadedSettings.plexHTTPS === 'true' ? 'https' : 'http';
+        const base = `${prefix}://${loadedSettings.plexIP}:${loadedSettings.plexPort}`;
+        const hdr = { 'X-Plex-Token': loadedSettings.plexToken, Accept: 'application/json' };
+        const sections = (await axios.get(`${base}/library/sections`, { headers: hdr })).data.MediaContainer.Directory || [];
+        for (const sec of sections) {
+          if (sec.type !== 'movie' && sec.type !== 'show') continue;
+          const cnt = (await axios.get(`${base}/library/sections/${sec.key}/all`,
+            { headers: { ...hdr, 'X-Plex-Container-Size': '0' } })).data.MediaContainer.totalSize || 0;
+          if (sec.type === 'movie') movieCount += cnt;
+          else tvCount += cnt;
+        }
+      } catch(e) {}
+    }
+
+    if (isEmbyEnabled) {
+      try {
+        const prefix = loadedSettings.embyHTTPS === 'true' ? 'https' : 'http';
+        const base = `${prefix}://${loadedSettings.embyIP}:${loadedSettings.embyPort}`;
+        const hdr = { 'X-Emby-Token': loadedSettings.embyToken };
+        const counts = (await axios.get(`${base}/Items/Counts`, { headers: hdr })).data;
+        movieCount += counts.MovieCount || 0;
+        tvCount    += counts.SeriesCount || 0;
+      } catch(e) {}
+    }
+
+    serverStats = { cpu, ramUsed, ramTotal, diskFree, diskTotal, movieCount, tvCount };
+  } catch(e) {}
+
+  statsClock = setInterval(loadServerStats, 30000);
+}
+
 async function startup(clearCache) {
   // stop all clocks
   clearInterval(nowScreeningClock);
@@ -1310,6 +1386,9 @@ async function startup(clearCache) {
 
   // check status
   await checkEnabled();
+
+  // start server stats polling (non-blocking)
+  loadServerStats();
 
   // set custom titles if available
   CardTypeEnum.NowScreening[1] = loadedSettings.nowScreening !== undefined ? loadedSettings.nowScreening : "";

@@ -57,7 +57,7 @@ class MediaCard {
    * @desc renders the properties of the card into html, then sets this to the 'rendered' property
    * @returns nothing
    */
-  async Render(hasArt,baseUrl,hideTitle,hideFooter) {
+  async Render(hasArt,baseUrl,hideTitle,hideFooter,serverStats) {
     let hiddenTitle = "";
     let hiddenFooter = "";
     let hidden = "";
@@ -257,6 +257,22 @@ class MediaCard {
         "<span class='badge badge-pill badge-dark'>End: " + endTime + "</span>";
     }
 
+    let statsBar = "";
+    if ((this.cardType[0] == "Now Screening" || this.cardType[0] == "Playing") && serverStats) {
+      const fmtBytes = (b) => {
+        if (b >= 1e12) return (b / 1e12).toFixed(1) + ' TB';
+        if (b >= 1e9)  return (b / 1e9).toFixed(1) + ' GB';
+        return (b / 1e6).toFixed(0) + ' MB';
+      };
+      statsBar = `<div class="statsBar" style="font-size:0.7rem;opacity:0.85;text-align:center;padding:2px 4px;background:rgba(0,0,0,0.55);color:#eee;">` +
+        `<span style="margin:0 6px">🎬 ${serverStats.movieCount} Movies</span>` +
+        `<span style="margin:0 6px">📺 ${serverStats.tvCount} Shows</span>` +
+        `<span style="margin:0 6px">CPU: ${serverStats.cpu}%</span>` +
+        `<span style="margin:0 6px">RAM: ${fmtBytes(serverStats.ramUsed)}/${fmtBytes(serverStats.ramTotal)}</span>` +
+        `<span style="margin:0 6px">Disk: ${fmtBytes(serverStats.diskFree)} free / ${fmtBytes(serverStats.diskTotal)}</span>` +
+        `</div>`;
+    }
+
     // render data into html
     this.rendered =
       `
@@ -336,8 +352,9 @@ class MediaCard {
       ipPill +
       yearPill +
       endTimePill +
+      `</div>` +
+      statsBar +
       `</div>
-      </div>
       </div>
     </div>`;
       return;
