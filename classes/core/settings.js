@@ -84,6 +84,11 @@ class Settings {
     this.links = DEFAULT_SETTINGS.links;
     this.rotate = DEFAULT_SETTINGS.rotate;
     this.excludeLibs = DEFAULT_SETTINGS.excludeLibs;
+    this.mediaServer = DEFAULT_SETTINGS.mediaServer;
+    this.embyIP = DEFAULT_SETTINGS.embyIP;
+    this.embyHTTPS = DEFAULT_SETTINGS.embyHTTPS;
+    this.embyPort = DEFAULT_SETTINGS.embyPort;
+    this.embyToken = DEFAULT_SETTINGS.embyToken;
     return;
   }
 
@@ -148,6 +153,11 @@ class Settings {
       if(readSettings.recentlyAddedDays==undefined) readSettings.recentlyAddedDays = 0;
       if(readSettings.enableAwtrix==undefined) readSettings.enableAwtrix = 'false';
       if(readSettings.rotate==undefined) readSettings.rotate = 'false';
+      if(readSettings.mediaServer==undefined) readSettings.mediaServer = 'plex';
+      if(readSettings.embyIP==undefined) readSettings.embyIP = '';
+      if(readSettings.embyHTTPS==undefined) readSettings.embyHTTPS = 'false';
+      if(readSettings.embyPort==undefined) readSettings.embyPort = 8096;
+      if(readSettings.embyToken==undefined) readSettings.embyToken = '';
     } catch (ex) {
       // do nothing if error as it reads ok anyhow
       let d = new Date();
@@ -380,6 +390,16 @@ class Settings {
     else this.rotate = cs.rotate;
     if (jsonObject.excludeLibs) this.excludeLibs = jsonObject.excludeLibs;
     else this.excludeLibs = cs.excludeLibs;
+    if (jsonObject.mediaServer) this.mediaServer = jsonObject.mediaServer;
+    else this.mediaServer = 'plex';
+    if (jsonObject.embyIP) this.embyIP = jsonObject.embyIP;
+    else this.embyIP = cs.embyIP;
+    if (jsonObject.embyHTTPSSwitch) this.embyHTTPS = jsonObject.embyHTTPSSwitch;
+    else this.embyHTTPS = 'false';
+    if (jsonObject.embyPort) this.embyPort = parseInt(jsonObject.embyPort);
+    else this.embyPort = cs.embyPort;
+    if (jsonObject.embyToken) this.embyToken = jsonObject.embyToken;
+    else this.embyToken = cs.embyToken;
 
     // convert JSON object to string (pretty format)
     const data = JSON.stringify(this, null, 4);

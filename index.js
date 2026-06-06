@@ -7,6 +7,7 @@ const session = require("express-session");
 const { check, validationResult } = require("express-validator");
 //const user = require('./routes/user.routes');
 const pms = require("./classes/mediaservers/plex");
+const embs = require("./classes/mediaservers/emby");
 const vers = require("./classes/core/ver");
 const glb = require("./classes/core/globalPage");
 const core = require("./classes/core/cache");
@@ -93,6 +94,8 @@ let isSleepEnabled = false;
 let isPicturesEnabled = false;
 let isPlexEnabled = false;
 let isPlexUnavailable = false;
+let isEmbyEnabled = false;
+let isEmbyUnavailable = false;
 let isSonarrUnavailable = false;
 let isRadarrUnavailable = false;
 let isReadarrUnavailable = false;
@@ -471,44 +474,57 @@ async function loadNowScreening() {
   clearInterval(nowScreeningClock);
 
   // stop timers dont run if disabled
-  if (!isPlexEnabled) {
+  if (!isPlexEnabled && !isEmbyEnabled) {
     nsCards = [];
     return nsCards;
   }
 
-  // load MediaServer(s) (switch statement for different server settings server option - TODO)
-  let ms = new pms({
-    plexHTTPS: loadedSettings.plexHTTPS,
-    plexIP: loadedSettings.plexIP,
-    plexPort: loadedSettings.plexPort,
-    plexToken: loadedSettings.plexToken,
-  });
-
   let excludeLibraries;
   if(loadedSettings.excludeLibs !== undefined && loadedSettings.excludeLibs !== ""){
-    excludeLibraries = loadedSettings.excludeLibs.split(",");
-    
-    // trim leading and trailing spaces
-    excludeLibraries = excludeLibraries.map(function (el) {
-      return el.trim();
-    });
+    excludeLibraries = loadedSettings.excludeLibs.split(",").map(el => el.trim());
   }
-  
 
   let pollInterval = nsCheckSeconds;
   // call now screening method
   try {
-    nsCards = await ms.GetNowScreening(
-      loadedSettings.playThemes,
-      loadedSettings.genericThemes,
-      loadedSettings.hasArt,
-      loadedSettings.filterRemote,
-      loadedSettings.filterLocal,
-      loadedSettings.filterDevices,
-      loadedSettings.filterUsers,
-      loadedSettings.hideUser,
-      excludeLibraries
-    );
+    if (loadedSettings.mediaServer === 'emby' && isEmbyEnabled) {
+      let ms = new embs({
+        HTTPS: loadedSettings.embyHTTPS,
+        embyIP: loadedSettings.embyIP,
+        embyPort: loadedSettings.embyPort,
+        embyToken: loadedSettings.embyToken,
+      });
+      nsCards = await ms.GetNowScreening(
+        loadedSettings.playThemes,
+        loadedSettings.genericThemes,
+        loadedSettings.hasArt,
+        loadedSettings.filterRemote,
+        loadedSettings.filterLocal,
+        loadedSettings.filterDevices,
+        loadedSettings.filterUsers,
+        loadedSettings.hideUser,
+        excludeLibraries
+      );
+    } else {
+      // load MediaServer(s)
+      let ms = new pms({
+        plexHTTPS: loadedSettings.plexHTTPS,
+        plexIP: loadedSettings.plexIP,
+        plexPort: loadedSettings.plexPort,
+        plexToken: loadedSettings.plexToken,
+      });
+      nsCards = await ms.GetNowScreening(
+        loadedSettings.playThemes,
+        loadedSettings.genericThemes,
+        loadedSettings.hasArt,
+        loadedSettings.filterRemote,
+        loadedSettings.filterLocal,
+        loadedSettings.filterDevices,
+        loadedSettings.filterUsers,
+        loadedSettings.hideUser,
+        excludeLibraries
+      );
+    }
     // Send to Awtrix, if enabled
     if(isAwtrixEnabled){
       var awt = new awtrix();
@@ -638,10 +654,14 @@ async function loadNowScreening() {
         }
       }
 
-    // restore defaults if plex now available after an error
+    // restore defaults if server now available after an error
     if (isPlexUnavailable) {
-      console.log("✅ Plex connection restored - defualt poll timers restored");
+      console.log("✅ Plex connection restored - default poll timers restored");
       isPlexUnavailable = false;
+    }
+    if (isEmbyUnavailable) {
+      console.log("✅ Emby connection restored - default poll timers restored");
+      isEmbyUnavailable = false;
     }
   } catch (err) {
     let now = new Date();
@@ -651,7 +671,11 @@ async function loadNowScreening() {
       "✘✘ WARNING ✘✘ - Next Now Screening query will be delayed by 1 minute:",
       "(" + pollInterval / 1000 + " seconds)"
     );
-    isPlexUnavailable = true;
+    if (loadedSettings.mediaServer === 'emby') {
+      isEmbyUnavailable = true;
+    } else {
+      isPlexUnavailable = true;
+    }
   }
 
   // Concatenate cards for all objects load now showing and on-demand cards, else just on-demand (if present)
@@ -828,24 +852,32 @@ async function loadOnDemand() {
     return odCards;
   }
 
-  // changing timings if plex unavailable or ns not working
+  // changing timings if server unavailable
   let odCheckMinutes = loadedSettings.onDemandRefresh;
-  if (isPlexUnavailable) {
+  const serverUnavailable = loadedSettings.mediaServer === 'emby' ? isEmbyUnavailable : isPlexUnavailable;
+  if (serverUnavailable) {
     odCheckMinutes = 1;
     console.log("✘✘ WARNING ✘✘ - Next on-demand query will run in 1 minute.");
-    // restart interval timer
     onDemandClock = setInterval(loadOnDemand, odCheckMinutes * 60000);
-
     return odCards;
   }
 
-  // load MediaServer(s) (switch statement for different server settings server option - TODO)
-  let ms = new pms({
-    plexHTTPS: loadedSettings.plexHTTPS,
-    plexIP: loadedSettings.plexIP,
-    plexPort: loadedSettings.plexPort,
-    plexToken: loadedSettings.plexToken,
-  });
+  let ms;
+  if (loadedSettings.mediaServer === 'emby' && isEmbyEnabled) {
+    ms = new embs({
+      HTTPS: loadedSettings.embyHTTPS,
+      embyIP: loadedSettings.embyIP,
+      embyPort: loadedSettings.embyPort,
+      embyToken: loadedSettings.embyToken,
+    });
+  } else {
+    ms = new pms({
+      plexHTTPS: loadedSettings.plexHTTPS,
+      plexIP: loadedSettings.plexIP,
+      plexPort: loadedSettings.plexPort,
+      plexToken: loadedSettings.plexToken,
+    });
+  }
 
   try {
     odCards = await ms.GetOnDemand(
@@ -905,6 +937,7 @@ async function checkEnabled() {
   // reset all enabled variables
   isOnDemandEnabled = false;
   isPlexEnabled = false;
+  isEmbyEnabled = false;
   isSonarrEnabled = false;
   isRadarrEnabled = false;
   isNowShowingEnabled = false;
@@ -993,12 +1026,24 @@ async function checkEnabled() {
   else{
     isPlexEnabled = false;
   }
-  
+
+  // check Emby
+  if (
+    (loadedSettings.embyIP !== undefined && loadedSettings.embyIP !== '') &&
+    (loadedSettings.embyToken !== undefined && loadedSettings.embyToken !== '') &&
+    (loadedSettings.embyPort !== undefined && loadedSettings.embyPort !== '')
+  ) {
+    isEmbyEnabled = true;
+  }
+  else{
+    isEmbyEnabled = false;
+  }
+
   // check on-demand
+  const mediaServerEnabled = loadedSettings.mediaServer === 'emby' ? isEmbyEnabled : isPlexEnabled;
   if (loadedSettings.onDemandLibraries !== undefined &&
-    isPlexEnabled &&
+    mediaServerEnabled &&
     loadedSettings.numberOnDemand !== undefined &&
-    //loadedSettings.numberOnDemand !== 0 &&
     loadedSettings.enableOD !== 'false'
   ) {
     isOnDemandEnabled = true;
@@ -1091,8 +1136,14 @@ async function checkEnabled() {
   
   console.log(
     `--- Enabled Status ---
+   Media Server: ` +
+    (loadedSettings.mediaServer || 'plex') +
+    `
    Plex: ` +
     isPlexEnabled +
+    `
+   Emby: ` +
+    isEmbyEnabled +
     `
    Now Showing: ` +
     isNowShowingEnabled +
@@ -1744,8 +1795,9 @@ app.post(
         return true;
       })
       .withMessage("'Slide Duration' is required and must be 5 or more"),
-    check("plexIP").not().isEmpty().withMessage("'Plex IP' is required"),
+    check("plexIP").if((value, { req }) => req.body.mediaServer !== 'emby').not().isEmpty().withMessage("'Plex IP' is required"),
     check("plexPort")
+      .if((value, { req }) => req.body.mediaServer !== 'emby')
       .not()
       .isEmpty()
       .withMessage("'Plex port' is required. (setting default)")
@@ -1753,7 +1805,6 @@ app.post(
         if (parseInt(value) === "NaN") {
           throw new Error("'Plex Port' must be a number");
         }
-        // Indicates the success of this synchronous custom validator
         return true;
       }),
     check("onDemandRefresh")
@@ -1804,7 +1855,7 @@ app.post(
         // Indicates the success of this synchronous custom validator
         return true;
       }),
-    check("plexToken").not().isEmpty().withMessage("'Plex token' is required"),
+    check("plexToken").if((value, { req }) => req.body.mediaServer !== 'emby').not().isEmpty().withMessage("'Plex token' is required"),
     check("enableSleep")
       .custom((value, { req }) => {
         if(value == "true"){
@@ -1919,6 +1970,11 @@ app.post(
       links: req.body.links,
       rotate: req.body.rotate,
       excludeLibs: req.body.excludeLibs,
+      mediaServer: req.body.mediaServer || 'plex',
+      embyIP: req.body.embyIP,
+      embyHTTPSSwitch: req.body.embyHTTPSSwitch,
+      embyPort: req.body.embyPort ? parseInt(req.body.embyPort) : DEFAULT_SETTINGS.embyPort,
+      embyToken: req.body.embyToken,
       saved: false
     };
 

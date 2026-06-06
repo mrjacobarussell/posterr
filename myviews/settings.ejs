@@ -551,6 +551,22 @@
                 <div class="panel-body">
 
                   <div class="form-group">
+                    <label><strong>Media Server</strong></label><br>
+                    <div class="custom-control custom-control-inline custom-radio">
+                      <input type="radio" class="custom-control-input" name="mediaServer" id="mediaServerPlex" value="plex"
+                        <% if(typeof formData !== 'undefined' && errors){ %><%= formData.mediaServer === 'plex' || !formData.mediaServer ? 'checked' : '' %><% }else{ %><%= (!settings.mediaServer || settings.mediaServer === 'plex') ? 'checked' : '' %><% } %>>
+                      <label class="custom-control-label" for="mediaServerPlex">Plex</label>
+                    </div>
+                    <div class="custom-control custom-control-inline custom-radio">
+                      <input type="radio" class="custom-control-input" name="mediaServer" id="mediaServerEmby" value="emby"
+                        <% if(typeof formData !== 'undefined' && errors){ %><%= formData.mediaServer === 'emby' ? 'checked' : '' %><% }else{ %><%= settings.mediaServer === 'emby' ? 'checked' : '' %><% } %>>
+                      <label class="custom-control-label" for="mediaServerEmby">Emby</label>
+                    </div>
+                    <small class="form-text text-muted">Choose which media server to use for Now Screening and On-Demand.</small>
+                  </div>
+
+                  <div id="plexSettings">
+                  <div class="form-group">
                   <div class="custom-control custom-control-nolabel custom-switch ml-auto">
                     <input type="checkbox" class="custom-control-input" name="plexHTTPSSwitch" id="plexHTTPSSwitch"
                      value="true" <% if(typeof formData !== 'undefined' && errors){%><%=formData.plexHTTPSSwitch ? 'checked' : '' %><%}else{%><%=(settings.plexHTTPS == 'true') ? 'checked' : '' %><%}%>>
@@ -568,7 +584,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="plexIP">Server Port</label>
+                  <label for="plexIPort">Server Port</label>
                   <input type="text" class="form-control" id="plexIPort" name="plexPort" aria-describedby="plexPortHelp"
                     placeholder="usually port 32400" value="<% if(typeof formData !== 'undefined' && errors){%><%=formData.plexPort%>"<%}else{%><%=settings.plexPort%>"<%}%>>
                   <small id="plexPortHelp" class="form-text text-muted">Enter the server port. (usually 32400).</small>
@@ -582,11 +598,57 @@
                     (<a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/"
                       target="_blank">details</a>)</small>
                 </div>
-                  
+                  </div><!-- end plexSettings -->
+
+                  <div id="embySettings">
+                  <div class="form-group">
+                  <div class="custom-control custom-control-nolabel custom-switch ml-auto">
+                    <input type="checkbox" class="custom-control-input" name="embyHTTPSSwitch" id="embyHTTPSSwitch"
+                     value="true" <% if(typeof formData !== 'undefined' && errors){%><%=formData.embyHTTPSSwitch ? 'checked' : '' %><%}else{%><%=(settings.embyHTTPS == 'true') ? 'checked' : '' %><%}%>>
+                    <label class="custom-control-label" for="embyHTTPSSwitch">HTTPS Connection</label>
+                    <small class="form-text text-muted">Enable if Emby requires a HTTPS connection.</small>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="embyIP">Emby Server IP or Domain Name</label>
+                  <input type="text" class="form-control" id="embyIP" name="embyIP" aria-describedby="embyIPHelp"
+                    placeholder="n.n.n.n" value="<% if(typeof formData !== 'undefined' && errors){%><%=formData.embyIP%>"<%}else{%><%=settings.embyIP || ''%>"<%}%>>
+                  <small id="embyIPHelp" class="form-text text-muted">Enter the Emby server IP or Domain Name.</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="embyPort">Emby Server Port</label>
+                  <input type="text" class="form-control" id="embyPort" name="embyPort" aria-describedby="embyPortHelp"
+                    placeholder="usually port 8096" value="<% if(typeof formData !== 'undefined' && errors){%><%=formData.embyPort%>"<%}else{%><%=settings.embyPort || 8096%>"<%}%>>
+                  <small id="embyPortHelp" class="form-text text-muted">Enter the server port. (usually 8096).</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="embyToken">Emby API Key</label>
+                  <input type="password" class="form-control" name="embyToken" id="embyToken" aria-describedby="embyTokenHelp"
+                    placeholder="Emby API Key" value="<% if(typeof formData !== 'undefined' && errors){%><%=formData.embyToken%>"<%}else{%><%=settings.embyToken || ''%>"<%}%>>
+                  <small id="embyTokenHelp" class="form-text text-muted">Generate in Emby: Dashboard &rarr; Advanced &rarr; API Keys.</small>
+                </div>
+                  </div><!-- end embySettings -->
+
                 </div>
               </div>
             </div>
             <hr>
+
+            <script>
+              (function() {
+                function toggleMediaServer() {
+                  var isPlex = document.getElementById('mediaServerPlex').checked;
+                  document.getElementById('plexSettings').style.display = isPlex ? '' : 'none';
+                  document.getElementById('embySettings').style.display = isPlex ? 'none' : '';
+                }
+                document.getElementById('mediaServerPlex').addEventListener('change', toggleMediaServer);
+                document.getElementById('mediaServerEmby').addEventListener('change', toggleMediaServer);
+                toggleMediaServer();
+              })();
+            </script>
 
             <div class="panel panel-default">
               <div class="panel-heading" role="tab" id="headingFour">

@@ -69,7 +69,12 @@ const DEFAULT_SETTINGS = {
   awtrixIP: "",
   enableLinks: "false",
   links: "",
-  excludeLibs: ""
+  excludeLibs: "",
+  mediaServer: "plex",
+  embyIP: "",
+  embyHTTPS: "false",
+  embyPort: 8096,
+  embyToken: ""
 };
 
 module.exports = DEFAULT_SETTINGS;
