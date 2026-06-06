@@ -60,7 +60,7 @@ class Plex {
    * @desc Gets now screening cards
    * @returns {object} mediaCard[] - Returns an array of mediaCards
    */
-    async GetNowScreening(playThemes, playGenenericThemes, hasArt, filterRemote, filterLocal, filterDevices, filterUsers, hideUser, excludeLibs) {
+    async GetNowScreening(playThemes, playGenenericThemes, hasArt, filterRemote, filterLocal, filterDevices, filterUsers, hideUser, excludeLibs, filterUserMode) {
     // get raw data first
     let nsCards = [];
     let nsRaw;
@@ -477,7 +477,11 @@ class Plex {
           // apply filter checks
           if(filterRemote=='true' && medCard.playerLocal == false) okToAdd = true;
           if(filterLocal=='true' && medCard.playerLocal == true) okToAdd = true;
-          if(users.length > 0 && users.includes(md.User.title.toLowerCase())==false && users[0] !== "") okToAdd = false;
+          if(users.length > 0 && users[0] !== "") {
+            const userMatch = users.includes(md.User.title.toLowerCase());
+            if(filterUserMode === 'exclude' && userMatch) okToAdd = false;
+            if(filterUserMode !== 'exclude' && !userMatch) okToAdd = false;
+          }
           if(devices.length > 0 && !util.isEmpty(medCard.playerDevice) && devices.includes(medCard.playerDevice.toLowerCase())==false && devices[0] !== "") okToAdd = false;
           if(excludeLibs !== undefined && excludeLibs !== "" && excludeLibs.includes(md.librarySectionTitle)) { 
             //console.log('Now Screening - Excluded library:', md.librarySectionTitle);

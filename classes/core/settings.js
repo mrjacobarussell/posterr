@@ -84,6 +84,7 @@ class Settings {
     this.links = DEFAULT_SETTINGS.links;
     this.rotate = DEFAULT_SETTINGS.rotate;
     this.excludeLibs = DEFAULT_SETTINGS.excludeLibs;
+    this.filterUserMode = DEFAULT_SETTINGS.filterUserMode;
     this.mediaServer = DEFAULT_SETTINGS.mediaServer;
     this.embyIP = DEFAULT_SETTINGS.embyIP;
     this.embyHTTPS = DEFAULT_SETTINGS.embyHTTPS;
@@ -153,6 +154,7 @@ class Settings {
       if(readSettings.recentlyAddedDays==undefined) readSettings.recentlyAddedDays = 0;
       if(readSettings.enableAwtrix==undefined) readSettings.enableAwtrix = 'false';
       if(readSettings.rotate==undefined) readSettings.rotate = 'false';
+      if(readSettings.filterUserMode==undefined) readSettings.filterUserMode = 'include';
       if(readSettings.mediaServer==undefined) readSettings.mediaServer = 'plex';
       if(readSettings.embyIP==undefined) readSettings.embyIP = '';
       if(readSettings.embyHTTPS==undefined) readSettings.embyHTTPS = 'false';
@@ -390,6 +392,8 @@ class Settings {
     else this.rotate = cs.rotate;
     if (jsonObject.excludeLibs) this.excludeLibs = jsonObject.excludeLibs;
     else this.excludeLibs = cs.excludeLibs;
+    if (jsonObject.filterUserMode) this.filterUserMode = jsonObject.filterUserMode;
+    else this.filterUserMode = 'include';
     if (jsonObject.mediaServer) this.mediaServer = jsonObject.mediaServer;
     else this.mediaServer = 'plex';
     if (jsonObject.embyIP) this.embyIP = jsonObject.embyIP;

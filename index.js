@@ -505,7 +505,8 @@ async function loadNowScreening() {
         loadedSettings.filterDevices,
         loadedSettings.filterUsers,
         loadedSettings.hideUser,
-        excludeLibraries
+        excludeLibraries,
+        loadedSettings.filterUserMode
       );
       allNsCards = allNsCards.concat(plexCards);
     }
@@ -526,7 +527,8 @@ async function loadNowScreening() {
         loadedSettings.filterDevices,
         loadedSettings.filterUsers,
         loadedSettings.hideUser,
-        excludeLibraries
+        excludeLibraries,
+        loadedSettings.filterUserMode
       );
       allNsCards = allNsCards.concat(embyCards);
     }
@@ -1974,6 +1976,7 @@ app.post(
       links: req.body.links,
       rotate: req.body.rotate,
       excludeLibs: req.body.excludeLibs,
+      filterUserMode: req.body.filterUserMode || 'include',
       mediaServer: req.body.mediaServer || 'plex',
       embyIP: req.body.embyIP,
       embyHTTPSSwitch: req.body.embyHTTPSSwitch,

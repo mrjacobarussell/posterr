@@ -70,6 +70,7 @@ const DEFAULT_SETTINGS = {
   enableLinks: "false",
   links: "",
   excludeLibs: "",
+  filterUserMode: "include",
   mediaServer: "plex",
   embyIP: "",
   embyHTTPS: "false",

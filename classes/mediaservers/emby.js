@@ -45,7 +45,7 @@ class Emby {
     }
   }
 
-  async GetNowScreening(playThemes, playGenericThemes, hasArt, filterRemote, filterLocal, filterDevices, filterUsers, hideUser, excludeLibs) {
+  async GetNowScreening(playThemes, playGenericThemes, hasArt, filterRemote, filterLocal, filterDevices, filterUsers, hideUser, excludeLibs, filterUserMode) {
     let sessions;
     try {
       const resp = await axios.get(this._url('/Sessions'), { headers: this._headers() });
@@ -83,7 +83,11 @@ class Emby {
 
       const userName = (session.UserName || '').toLowerCase();
       const deviceName = (session.DeviceName || '').toLowerCase();
-      if (users.length > 0 && users[0] !== '' && !users.includes(userName)) okToAdd = false;
+      if (users.length > 0 && users[0] !== '') {
+        const userMatch = users.includes(userName);
+        if (filterUserMode === 'exclude' && userMatch) okToAdd = false;
+        if (filterUserMode !== 'exclude' && !userMatch) okToAdd = false;
+      }
       if (devices.length > 0 && devices[0] !== '' && !devices.includes(deviceName)) okToAdd = false;
 
       if (!okToAdd) continue;
